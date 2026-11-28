@@ -178,12 +178,12 @@ _METHOD_KWARGS: dict[tuple[str, str], dict] = {
     ("iam", "list_policies"): {"Scope": "Local"},
 }
 
-# List calls whose results come in pages, followed to the last one. IAM stops at
-# 100 items a page.
-_PAGINATED: set[tuple[str, str]] = {
-    ("iam", "list_roles"),
-    ("iam", "list_users"),
-    ("iam", "list_policies"),
+# List calls whose results come in pages, followed to the last one, with the page
+# size to ask for. IAM returns 100 items a page unless asked for up to 1000.
+_PAGINATED: dict[tuple[str, str], int] = {
+    ("iam", "list_roles"): 1000,
+    ("iam", "list_users"): 1000,
+    ("iam", "list_policies"): 1000,
 }
 
 # Responses that group their resources: (boto3 service, method) -> the key that
@@ -225,7 +225,8 @@ def list_items(client, boto3_service: str, method_name: str, response_key: str) 
     method = getattr(client, method_name)
     per_parent = _PER_PARENT.get((boto3_service, method_name))
     if (boto3_service, method_name) in _PAGINATED:
-        pages = client.get_paginator(method_name).paginate(**kwargs)
+        page_size = _PAGINATED[(boto3_service, method_name)]
+        pages = client.get_paginator(method_name).paginate(**kwargs, PaginationConfig={"PageSize": page_size})
         return [
             item for page in pages for item in _response_items(page, boto3_service, method_name, response_key)
         ]

@@ -24,10 +24,14 @@ def _policy_document(document: object) -> dict:
     return {}
 
 
+# IAM returns 100 items a page unless asked for more; 1000 is the most it allows.
+_PAGES = {"PageSize": 1000}
+
+
 @router.get("/users")
 def list_users(ep: EndpointInfo = Depends(get_endpoint_info)):
     iam = get_client("iam", **ep.client_kwargs())
-    pages = iam.get_paginator("list_users").paginate()
+    pages = iam.get_paginator("list_users").paginate(PaginationConfig=_PAGES)
     users = [
         {
             "UserName": u["UserName"],
@@ -105,7 +109,7 @@ def get_user_detail(name: str, ep: EndpointInfo = Depends(get_endpoint_info)):
 @router.get("/roles")
 def list_roles(ep: EndpointInfo = Depends(get_endpoint_info)):
     iam = get_client("iam", **ep.client_kwargs())
-    pages = iam.get_paginator("list_roles").paginate()
+    pages = iam.get_paginator("list_roles").paginate(PaginationConfig=_PAGES)
     roles = [
         {
             "RoleName": r["RoleName"],
@@ -172,7 +176,7 @@ def get_role_detail(name: str, ep: EndpointInfo = Depends(get_endpoint_info)):
 @router.get("/groups")
 def list_groups(ep: EndpointInfo = Depends(get_endpoint_info)):
     iam = get_client("iam", **ep.client_kwargs())
-    pages = iam.get_paginator("list_groups").paginate()
+    pages = iam.get_paginator("list_groups").paginate(PaginationConfig=_PAGES)
     groups = [
         {
             "GroupName": g["GroupName"],
@@ -195,7 +199,7 @@ def get_group_detail(name: str, ep: EndpointInfo = Depends(get_endpoint_info)):
     # every page repeats the group.
     group = None
     users = []
-    for page in iam.get_paginator("get_group").paginate(GroupName=name):
+    for page in iam.get_paginator("get_group").paginate(GroupName=name, PaginationConfig=_PAGES):
         group = page["Group"]
         users.extend(page.get("Users", []))
 
@@ -235,7 +239,7 @@ def list_policies(scope: str = Query(default="Local", description="Policy scope:
     if scope in ["Local", "AWS"]:
         params["Scope"] = scope
 
-    pages = iam.get_paginator("list_policies").paginate(**params)
+    pages = iam.get_paginator("list_policies").paginate(**params, PaginationConfig=_PAGES)
     policies = [
         {
             "PolicyName": p["PolicyName"],
@@ -275,7 +279,7 @@ def get_policy_detail(arn: str, ep: EndpointInfo = Depends(get_endpoint_info)):
     attached_to = {"users": [], "roles": [], "groups": []}
     try:
         entities = {"users": [], "roles": [], "groups": []}
-        for page in iam.get_paginator("list_entities_for_policy").paginate(PolicyArn=arn):
+        for page in iam.get_paginator("list_entities_for_policy").paginate(PolicyArn=arn, PaginationConfig=_PAGES):
             entities["users"].extend(page.get("PolicyUsers", []))
             entities["roles"].extend(page.get("PolicyRoles", []))
             entities["groups"].extend(page.get("PolicyGroups", []))

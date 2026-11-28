@@ -340,8 +340,8 @@ class TestListsPastTheFirstPage:
         second = {"UserName": "bob", "UserId": "AIDAEXAMPLEUSER02", "Arn": "arn:aws:iam::000:user/bob", "Path": "/", "CreateDate": NOW}
 
         with Stubber(iam) as stubber:
-            stubber.add_response("list_users", {"Users": [first], "IsTruncated": True, "Marker": "page-2"}, {})
-            stubber.add_response("list_users", {"Users": [second], "IsTruncated": False}, {"Marker": "page-2"})
+            stubber.add_response("list_users", {"Users": [first], "IsTruncated": True, "Marker": "page-2"}, {"MaxItems": 1000})
+            stubber.add_response("list_users", {"Users": [second], "IsTruncated": False}, {"MaxItems": 1000, "Marker": "page-2"})
             with patch("backend.routes.iam.get_client", return_value=iam):
                 resp = client.get("/api/iam/users")
             stubber.assert_no_pending_responses()
@@ -355,8 +355,8 @@ class TestListsPastTheFirstPage:
         second = {"GroupName": "devs", "GroupId": "AGPAEXAMPLEGROUP02", "Arn": "arn:aws:iam::000:group/devs", "Path": "/", "CreateDate": NOW}
 
         with Stubber(iam) as stubber:
-            stubber.add_response("list_groups", {"Groups": [first], "IsTruncated": True, "Marker": "page-2"}, {})
-            stubber.add_response("list_groups", {"Groups": [second], "IsTruncated": False}, {"Marker": "page-2"})
+            stubber.add_response("list_groups", {"Groups": [first], "IsTruncated": True, "Marker": "page-2"}, {"MaxItems": 1000})
+            stubber.add_response("list_groups", {"Groups": [second], "IsTruncated": False}, {"MaxItems": 1000, "Marker": "page-2"})
             with patch("backend.routes.iam.get_client", return_value=iam):
                 resp = client.get("/api/iam/groups")
             stubber.assert_no_pending_responses()
@@ -378,8 +378,8 @@ class TestListsPastTheFirstPage:
         second = {"UserName": "bob", "UserId": "AIDAEXAMPLEUSER02", "Arn": "arn:aws:iam::000:user/bob", "Path": "/", "CreateDate": NOW}
 
         with Stubber(iam) as stubber:
-            stubber.add_response("get_group", {"Group": group, "Users": [first], "IsTruncated": True, "Marker": "page-2"}, {"GroupName": "admins"})
-            stubber.add_response("get_group", {"Group": group, "Users": [second], "IsTruncated": False}, {"GroupName": "admins", "Marker": "page-2"})
+            stubber.add_response("get_group", {"Group": group, "Users": [first], "IsTruncated": True, "Marker": "page-2"}, {"MaxItems": 1000, "GroupName": "admins"})
+            stubber.add_response("get_group", {"Group": group, "Users": [second], "IsTruncated": False}, {"MaxItems": 1000, "GroupName": "admins", "Marker": "page-2"})
             stubber.add_response("list_attached_group_policies", {"AttachedPolicies": []}, {"GroupName": "admins"})
             stubber.add_response("list_group_policies", {"PolicyNames": []}, {"GroupName": "admins"})
             with patch("backend.routes.iam.get_client", return_value=iam):
@@ -400,12 +400,12 @@ class TestListsPastTheFirstPage:
             stubber.add_response(
                 "list_entities_for_policy",
                 {"PolicyUsers": [{"UserName": "alice"}], "PolicyRoles": [{"RoleName": "lambda-exec"}], "PolicyGroups": [], "IsTruncated": True, "Marker": "page-2"},
-                {"PolicyArn": arn},
+                {"MaxItems": 1000, "PolicyArn": arn},
             )
             stubber.add_response(
                 "list_entities_for_policy",
                 {"PolicyUsers": [{"UserName": "bob"}], "PolicyRoles": [], "PolicyGroups": [{"GroupName": "admins"}], "IsTruncated": False},
-                {"PolicyArn": arn, "Marker": "page-2"},
+                {"MaxItems": 1000, "PolicyArn": arn, "Marker": "page-2"},
             )
             stubber.add_response("list_policy_tags", {"Tags": []}, {"PolicyArn": arn})
             with patch("backend.routes.iam.get_client", return_value=iam):
